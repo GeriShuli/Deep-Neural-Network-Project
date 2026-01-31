@@ -1,0 +1,21 @@
+base.trainable = True
+
+cut = int(len(base.layers) * 0.75)   # unfreeze last 25%
+for layer in base.layers[:cut]:
+    layer.trainable = False
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"],
+)
+
+history2 = model.fit(
+    train_tf,
+    epochs=10,
+    steps_per_epoch=TRAIN_STEPS,
+    validation_data=val_tf,
+    validation_steps=VAL_STEPS,
+    callbacks=callbacks,
+    verbose=1
+)
