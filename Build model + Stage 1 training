@@ -1,0 +1,43 @@
+base = EfficientNetV2B0(
+    include_top=False,
+    weights="imagenet",
+    input_shape=(IMG_SIZE, IMG_SIZE, 3),
+)
+
+base.trainable = False
+
+inputs = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
+x = base(inputs, training=False)
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dropout(0.30)(x)
+outputs = layers.Dense(NUM_CLASSES, activation="softmax", dtype="float32")(x)
+
+model = tf.keras.Model(inputs, outputs)
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"],
+)
+
+callbacks = [
+    tf.keras.callbacks.ModelCheckpoint(
+        "eurosat_best.keras", monitor="val_accuracy", save_best_only=True, verbose=1
+    ),
+    tf.keras.callbacks.EarlyStopping(
+        monitor="val_accuracy", patience=5, restore_best_weights=True
+    ),
+    tf.keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss", factor=0.5, patience=2, min_lr=1e-6, verbose=1
+    ),
+]
+
+history1 = model.fit(
+    train_tf,
+    epochs=10,
+    steps_per_epoch=TRAIN_STEPS,
+    validation_data=val_tf,
+    validation_steps=VAL_STEPS,
+    callbacks=callbacks,
+    verbose=1
+)
