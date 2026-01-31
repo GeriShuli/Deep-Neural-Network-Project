@@ -1,0 +1,19 @@
+
+!pip -q install -U "huggingface-hub>=0.34.0,<1.0" "datasets>=2.18.0" "hf_transfer>=0.1.9"
+
+import os, math, numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+from datasets import load_dataset, DownloadConfig
+from sklearn.metrics import confusion_matrix, classification_report
+import itertools
+
+from tensorflow.keras import layers
+from tensorflow.keras.applications import EfficientNetV2B0
+from tensorflow.keras.applications.efficientnet_v2 import preprocess_input
+
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
+print("TF:", tf.__version__)
+print("GPU:", tf.config.list_physical_devices("GPU"))
