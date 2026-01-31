@@ -1,0 +1,16 @@
+HF_DATASET = "cm93/eurosat"
+IMAGE_COL = "image"
+LABEL_COL = "label"
+
+dl_cfg = DownloadConfig(resume_download=True, max_retries=30)
+
+ds_train = load_dataset(HF_DATASET, split="train", streaming=False, download_config=dl_cfg)
+ds_val   = load_dataset(HF_DATASET, split="validation", streaming=False, download_config=dl_cfg)
+ds_test  = load_dataset(HF_DATASET, split="test", streaming=False, download_config=dl_cfg)
+
+class_names = ds_train.features[LABEL_COL].names
+NUM_CLASSES = len(class_names)
+
+print("NUM_CLASSES:", NUM_CLASSES)
+print("Classes:", class_names)
+print("Sizes:", len(ds_train), len(ds_val), len(ds_test))
