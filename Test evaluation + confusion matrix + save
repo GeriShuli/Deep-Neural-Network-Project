@@ -1,0 +1,43 @@
+test_loss, test_acc = model.evaluate(test_tf, steps=TEST_STEPS, verbose=1)
+print(f"\nTEST accuracy: {test_acc:.4f} | loss: {test_loss:.4f}")
+
+# Collect predictions over full test set
+y_true, y_pred = [], []
+for imgs, labs in test_tf.take(TEST_STEPS):
+    probs = model.predict(imgs, verbose=0)
+    preds = np.argmax(probs, axis=1)
+    y_true.extend(labs.numpy().tolist())
+    y_pred.extend(preds.tolist())
+
+cm = confusion_matrix(y_true, y_pred)
+
+def plot_cm(cm, classes, normalize=False, title="Confusion Matrix"):
+    plt.figure(figsize=(9, 7))
+    if normalize:
+        cm_show = cm.astype("float") / (cm.sum(axis=1, keepdims=True) + 1e-9)
+    else:
+        cm_show = cm
+
+    plt.imshow(cm_show, interpolation="nearest")
+    plt.title(title); plt.colorbar()
+    ticks = np.arange(len(classes))
+    plt.xticks(ticks, classes, rotation=45, ha="right")
+    plt.yticks(ticks, classes)
+
+    fmt = ".2f" if normalize else "d"
+    for i, j in itertools.product(range(cm_show.shape[0]), range(cm_show.shape[1])):
+        plt.text(j, i, format(cm_show[i, j], fmt), ha="center", va="center")
+
+    plt.ylabel("True")
+    plt.xlabel("Predicted")
+    plt.tight_layout()
+    plt.show()
+
+plot_cm(cm, class_names, normalize=False, title="Confusion Matrix (Counts)")
+plot_cm(cm, class_names, normalize=True, title="Confusion Matrix (Normalized)")
+
+print("\nClassification report:")
+print(classification_report(y_true, y_pred, target_names=class_names, digits=4, zero_division=0))
+
+model.save("eurosat_model_final.keras")
+print("\nSaved: eurosat_model_final.keras")
