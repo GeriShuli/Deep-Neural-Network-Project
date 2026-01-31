@@ -1,0 +1,64 @@
+
+IMG_SIZE = 224
+BATCH_SIZE = 64
+AUTOTUNE = tf.data.AUTOTUNE
+
+data_augment = tf.keras.Sequential(
+    [
+        layers.RandomFlip("horizontal"),
+        layers.RandomRotation(0.08),
+        layers.RandomZoom(0.10),
+        layers.RandomContrast(0.10),
+    ],
+    name="augmentation",
+)
+
+def hf_to_tf_generator(hfds):
+    for ex in hfds:
+        img = np.array(ex[IMAGE_COL])          # uint8 HWC
+        lab = np.int64(ex[LABEL_COL])
+        yield img, lab
+
+output_signature = (
+    tf.TensorSpec(shape=(None, None, 3), dtype=tf.uint8),
+    tf.TensorSpec(shape=(), dtype=tf.int64),
+)
+
+def preprocess_train(img, lab):
+    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE))
+    img = tf.cast(img, tf.float32)             # keep [0..255]
+    img = data_augment(img, training=True)
+    img = preprocess_input(img)                # EfficientNetV2 preprocessing
+    return img, lab
+
+def preprocess_eval(img, lab):
+    img = tf.image.resize(img, (IMG_SIZE, IMG_SIZE))
+    img = tf.cast(img, tf.float32)
+    img = preprocess_input(img)
+    return img, lab
+
+train_tf = (tf.data.Dataset.from_generator(lambda: hf_to_tf_generator(ds_train),
+                                           output_signature=output_signature)
+            .shuffle(4096, reshuffle_each_iteration=True)
+            .map(preprocess_train, num_parallel_calls=AUTOTUNE)
+            .batch(BATCH_SIZE)
+            .repeat()                          # IMPORTANT: never runs out
+            .prefetch(AUTOTUNE))
+
+val_tf = (tf.data.Dataset.from_generator(lambda: hf_to_tf_generator(ds_val),
+                                         output_signature=output_signature)
+          .map(preprocess_eval, num_parallel_calls=AUTOTUNE)
+          .batch(BATCH_SIZE)
+          .prefetch(AUTOTUNE))
+
+test_tf = (tf.data.Dataset.from_generator(lambda: hf_to_tf_generator(ds_test),
+                                          output_signature=output_signature)
+           .map(preprocess_eval, num_parallel_calls=AUTOTUNE)
+           .batch(BATCH_SIZE)
+           .prefetch(AUTOTUNE))
+
+TRAIN_STEPS = math.ceil(len(ds_train) / BATCH_SIZE)
+VAL_STEPS   = math.ceil(len(ds_val) / BATCH_SIZE)
+TEST_STEPS  = math.ceil(len(ds_test) / BATCH_SIZE)
+
+print("Steps:", TRAIN_STEPS, VAL_STEPS, TEST_STEPS)
