@@ -1,0 +1,25 @@
+def show_samples(ds, n=12):
+    imgs, labs = next(iter(ds.take(1)))   # one batch
+    imgs = imgs[:n]
+    labs = labs[:n]
+
+    plt.figure(figsize=(12, 8))
+    for i in range(n):
+        ax = plt.subplot(3, 4, i + 1)
+
+        # Convert to numpy float32 for matplotlib
+        im = imgs[i].numpy().astype("float32")
+
+        # Rescale safely to [0, 1] for display
+        im_min = float(im.min())
+        im_max = float(im.max())
+        im = (im - im_min) / (im_max - im_min + 1e-9)
+
+        plt.imshow(im)
+        plt.title(class_names[int(labs[i])])
+        plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+show_samples(train_tf, n=12)
